@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.tvslideshow" name="TV Slideshow" version="2.2.0" provider-name="muggeh">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+    </requires>
+    <extension point="xbmc.python.script" library="default.py">
+        <provides>executable</provides>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en_GB">Full-screen photo slideshow</summary>
+        <description lang="en_GB">Shows a full-screen slideshow of photos placed in /storage/Slideshow/photos. Seconds per photo, random order and background color are configured via this addon's own Settings screen. Left/Right on the remote goes to the previous/next photo, Pause/Play pauses and resumes the auto-advance, and Back exits. Photos are always scaled to fit the current Kodi GUI resolution without cropping, against an opaque background, and Kodi's own screensaver is held off while it runs.</description>
+        <platform>all</platform>
+    </extension>
+</addon>

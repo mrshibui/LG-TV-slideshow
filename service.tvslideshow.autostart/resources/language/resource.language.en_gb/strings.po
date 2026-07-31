@@ -1,0 +1,18 @@
+# Kodi Media Center language file
+# Addon Name: TV Slideshow Auto-start
+# Addon id: service.tvslideshow.autostart
+# Addon Provider: muggeh
+msgid ""
+msgstr ""
+
+msgctxt "#30000"
+msgid "Auto-start"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Idle minutes before auto-start"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Minutes of no remote input (and nothing playing) before the slideshow launches itself. Set to 0 to disable."
+msgstr ""

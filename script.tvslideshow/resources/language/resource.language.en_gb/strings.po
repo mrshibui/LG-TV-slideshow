@@ -1,0 +1,50 @@
+# Kodi Media Center language file
+# Addon Name: TV Slideshow
+# Addon id: script.tvslideshow
+# Addon Provider: muggeh
+msgid ""
+msgstr ""
+
+msgctxt "#30000"
+msgid "Slideshow"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Seconds per photo"
+msgstr ""
+
+msgctxt "#30002"
+msgid "How long each photo stays on screen before advancing."
+msgstr ""
+
+msgctxt "#30003"
+msgid "Random order"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Shuffle the photo order each time the slideshow starts."
+msgstr ""
+
+msgctxt "#30005"
+msgid "Background color"
+msgstr ""
+
+msgctxt "#30006"
+msgid "Fills the screen behind and around each photo. Keep this fully opaque - a translucent color lets the Kodi interface show through."
+msgstr ""
+
+msgctxt "#30007"
+msgid "Photo fit"
+msgstr ""
+
+msgctxt "#30008"
+msgid "How each photo is scaled to the screen."
+msgstr ""
+
+msgctxt "#30009"
+msgid "Show complete photo (black bars)"
+msgstr ""
+
+msgctxt "#30010"
+msgid "Fill screen (crop photo)"
+msgstr ""
