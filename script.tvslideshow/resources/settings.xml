@@ -36,6 +36,20 @@
                     </constraints>
                     <control format="integer" type="spinner"/>
                 </setting>
+                <setting id="photosDir" type="path" label="30011" help="30012">
+                    <level>0</level>
+                    <default>/storage/Slideshow/photos</default>
+                    <constraints>
+                        <allowempty>false</allowempty>
+                        <writable>false</writable>
+                        <sources>
+                            <source>files</source>
+                        </sources>
+                    </constraints>
+                    <control type="button" format="path">
+                        <heading>30011</heading>
+                    </control>
+                </setting>
             </group>
         </category>
     </section>

@@ -48,3 +48,11 @@ msgstr ""
 msgctxt "#30010"
 msgid "Fill screen (crop photo)"
 msgstr ""
+
+msgctxt "#30011"
+msgid "Photos folder"
+msgstr ""
+
+msgctxt "#30012"
+msgid "Which folder to show photos from - browse to a subfolder (e.g. one per trip/album) inside /storage/Slideshow/photos, or leave it as-is to use that folder directly."
+msgstr ""
