@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.muggehslideshow" name="TV Slideshow Repository" version="1.0.0" provider-name="muggeh">
+    <extension point="xbmc.addon.repository" name="TV Slideshow Repository">
+        <dir>
+            <info compressed="false">https://raw.githubusercontent.com/mrshibui/LG-TV-slideshow/main/repo/addons.xml</info>
+            <checksum>https://raw.githubusercontent.com/mrshibui/LG-TV-slideshow/main/repo/addons.xml.md5</checksum>
+            <datadir zip="true">https://raw.githubusercontent.com/mrshibui/LG-TV-slideshow/main/repo</datadir>
+        </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en_GB">Update source for the TV Slideshow addons</summary>
+        <description lang="en_GB">Installing this once lets Kodi check GitHub directly for updates to TV Slideshow and TV Slideshow Auto-start, showing the normal Kodi "Update" button whenever a new version is pushed - no more manually copying addon folders over for every change.</description>
+        <platform>all</platform>
+    </extension>
+</addon>

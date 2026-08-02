@@ -4,6 +4,7 @@ A minimal full-screen photo slideshow for the Ugoos AM6B running CoreELEC, built
 
 - **`script.tvslideshow`** — the slideshow itself. Launch it manually, or let the service below start it for you.
 - **`service.tvslideshow.autostart`** — an optional background watcher that auto-launches the slideshow after a configurable period of inactivity, screensaver-style, without the limitations of a real Kodi screensaver (see below).
+- **`repository.muggehslideshow`** — install this one once and Kodi will offer the normal Update button for the other two whenever a new version is pushed to GitHub, instead of needing a manual re-copy each time (see "Installing on the CoreELEC box" below).
 
 ## How it works
 
@@ -42,16 +43,44 @@ Look for `[service.tvslideshow.autostart] service started` right after enabling 
 
 ## Installing on the CoreELEC box
 
+There are two ways to get the addons onto the box: a one-time repository install that then gets Kodi's normal "Update" button for every future change, or a manual copy for quick one-off testing. Either way, finish with steps 4-6 below.
+
+### Option A — via the update repository (recommended)
+
+This is a one-time setup; after this, pushing a new version to GitHub is enough for Kodi to notice and offer an update on its own (see "Publishing an update" below).
+
 1. Enable SSH: on the TV, `Settings > CoreELEC > Services > SSH`, turn it on. Default login is `root` / `coreelec` (change the password if you haven't already).
-2. Copy both addon folders to the box:
+2. Copy just the repository addon over (only this one needs a manual copy, ever):
    ```bash
-   scp -r script.tvslideshow service.tvslideshow.autostart root@<box-ip>:/storage/.kodi/addons/
+   scp -r repository.muggehslideshow root@<box-ip>:/storage/.kodi/addons/
    ```
-3. Restart Kodi so it picks up the new addons (either reboot the box, or from an SSH session: `systemctl restart kodi`).
+3. Restart Kodi (`systemctl restart kodi`, or reboot the box).
+4. `Settings > Add-ons > Install from repository > TV Slideshow Repository` → install **TV Slideshow** and **TV Slideshow Auto-start** from there.
+
+### Option B — manual copy (quick one-off testing)
+
+```bash
+scp -r script.tvslideshow service.tvslideshow.autostart root@<box-ip>:/storage/.kodi/addons/
+```
+Restart Kodi so it picks up the new addons (either reboot the box, or from an SSH session: `systemctl restart kodi`). Addons installed this way still show update notifications later if the repository addon (Option A) is also installed — Kodi tracks installed versions by addon ID regardless of how they first got there.
+
+### Either way
+
 4. If they're not already active, enable both: `Settings > Add-ons > My add-ons`, find **TV Slideshow** under Program add-ons and **TV Slideshow Auto-start** under Services, and enable each.
-   - Only installed `script.tvslideshow` and want to launch it manually (no auto-start)? Skip installing/enabling the service addon entirely.
+   - Only want `script.tvslideshow` and want to launch it manually (no auto-start)? Skip installing/enabling the service addon entirely.
 5. Configure each addon from its own Settings screen (the gear icon in its info panel) — see "How it works" above for what each setting does.
 6. Launch the slideshow manually any time from `Add-ons > Program add-ons > TV Slideshow`, or just leave the box idle for the configured number of minutes and let the service start it for you.
+
+### Publishing an update (for whoever maintains this repo)
+
+After bumping a version number in an addon's `addon.xml`:
+```bash
+python3 build_repo.py
+git add -A
+git commit -m "..."
+git push
+```
+This regenerates `repo/addons.xml`, `repo/addons.xml.md5`, and each addon's zip under `repo/<addon-id>/`, all served straight from GitHub via `raw.githubusercontent.com`. Kodi periodically re-checks `addons.xml.md5` (or checks immediately if you open `Settings > Add-ons > My add-ons` and pull to refresh) and shows its normal Update button once the new version is live. The repository addon (`repository.muggehslideshow`) is itself included in this same build/publish step, so its own update mechanism can update itself too if its `addon.xml` ever changes.
 
 ## Adding photos
 
