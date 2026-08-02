@@ -1,10 +1,12 @@
 # TV Slideshow (Kodi / CoreELEC addons)
 
-A minimal full-screen photo slideshow for the Ugoos AM6B running CoreELEC, built as two Kodi addons. Photos can live directly on the box's storage, or on a NAS mounted into it (see "Storing photos on a NAS" below) if local space is limited — everything else is configured through Kodi's own native addon Settings screens (no file editing needed).
+A minimal full-screen photo slideshow for the Ugoos AM6B running CoreELEC, built as three Kodi addons. Photos can live directly on the box's storage, or on a NAS mounted into it (see "Storing photos on a NAS" below) if local space is limited — everything else is configured through Kodi's own native addon Settings screens (no file editing needed).
 
-- **`script.tvslideshow`** — the slideshow itself. Launch it manually, or let the service below start it for you.
-- **`service.tvslideshow.autostart`** — an optional background watcher that auto-launches the slideshow after a configurable period of inactivity, screensaver-style, without the limitations of a real Kodi screensaver (see below).
-- **`repository.muggehslideshow`** — install this one once and Kodi will offer the normal Update button for the other two whenever a new version is pushed to GitHub, instead of needing a manual re-copy each time (see "Installing on the CoreELEC box" below).
+- **`script.tvslideshow`** ("TV Slideshow") — the slideshow itself. Launch it manually, or let the service below start it for you.
+- **`service.tvslideshow.autostart`** ("TV Slideshow Auto-start") — an optional background watcher that auto-launches the slideshow after a configurable period of inactivity, screensaver-style, without the limitations of a real Kodi screensaver (see below).
+- **`repository.muggehslideshow`** ("TV Slideshow Repository") — install this one once and Kodi will offer the normal Update button for the other two whenever a new version is pushed to GitHub, instead of needing a manual re-copy each time (see "Installing on the CoreELEC box" below).
+
+These show up as **three separate entries** in `Settings > Add-ons > My add-ons`, grouped by Kodi's own addon type categories rather than listed together: TV Slideshow under *Program add-ons*, TV Slideshow Auto-start under *Services*, and TV Slideshow Repository under *Repositories*. Seeing all three listed separately (rather than one combined "TV Slideshow" entry) is expected, not a sign anything installed incorrectly.
 
 ## How it works
 
