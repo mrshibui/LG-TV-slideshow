@@ -91,11 +91,15 @@ def main():
     with open(os.path.join(REPO_DIR, 'addons.xml'), 'w', encoding='utf-8') as f:
         f.write(addons_xml)
 
+    # Named ".md5.txt" rather than the more conventional ".md5" because
+    # jsdelivr (used to serve this repo - see repository.muggehslideshow's
+    # addon.xml) blocks the plain ".md5" extension for abuse prevention.
+    # Kodi doesn't care what this file is called, only what URL serves it.
     md5 = hashlib.md5(addons_xml.encode('utf-8')).hexdigest()
-    with open(os.path.join(REPO_DIR, 'addons.xml.md5'), 'w', encoding='utf-8') as f:
+    with open(os.path.join(REPO_DIR, 'addons.xml.md5.txt'), 'w', encoding='utf-8') as f:
         f.write(md5)
 
-    print('wrote repo/addons.xml and repo/addons.xml.md5 (md5=%s)' % md5)
+    print('wrote repo/addons.xml and repo/addons.xml.md5.txt (md5=%s)' % md5)
 
 
 if __name__ == '__main__':
