@@ -1,6 +1,6 @@
 # TV Slideshow (Kodi / CoreELEC addons)
 
-A minimal full-screen photo slideshow for the Ugoos AM6B running CoreELEC, built as two Kodi addons. Photos live directly on the box's storage — no network/NAS dependency — and everything else is configured through Kodi's own native addon Settings screens (no file editing needed).
+A minimal full-screen photo slideshow for the Ugoos AM6B running CoreELEC, built as two Kodi addons. Photos can live directly on the box's storage, or on a NAS mounted into it (see "Storing photos on a NAS" below) if local space is limited — everything else is configured through Kodi's own native addon Settings screens (no file editing needed).
 
 - **`script.tvslideshow`** — the slideshow itself. Launch it manually, or let the service below start it for you.
 - **`service.tvslideshow.autostart`** — an optional background watcher that auto-launches the slideshow after a configurable period of inactivity, screensaver-style, without the limitations of a real Kodi screensaver (see below).
@@ -65,6 +65,41 @@ scp myphoto1.jpg myphoto2.jpg root@<box-ip>:/storage/Slideshow/photos/Japan/
 If Pillow isn't available in Kodi's Python (check `kodi.log` for `PIL available: False` right after launching the slideshow), portrait photos fall back to showing full-size but sideways rather than failing.
 
 **A note on an asymmetric black bar on one side:** if you ever see this, it's very likely a Kodi GUI calibration issue on the device itself, not something fixable in the addon - check `Settings > System > Display > Calibrate` and make sure the (default, unadjusted) calibration rectangle actually lines up with your TV's true visible edges. This can go unnoticed for a long time since normal Kodi menus have their own built-in margins that mask a small miscalibration - it only shows up on genuinely edge-to-edge content like this slideshow's full-screen photos.
+
+## Storing photos on a NAS
+
+If local storage on the box is limited, the photos folder can point at a NAS instead — the addon just reads whatever local filesystem path it's given, so this needs no addon changes, only a proper OS-level network mount (not just adding the NAS as a Kodi source, which only works through Kodi's own internal VFS and wouldn't be visible to the addon's plain file access).
+
+Example for a **Synology NAS over SMB**:
+
+1. On the Synology (DSM web interface):
+   - `Control Panel > File Services > SMB` — make sure **Enable SMB service** is checked.
+   - Create a dedicated read-only user (recommended over reusing an admin account): `Control Panel > User & Group > Create` (e.g. `kodi-readonly`), then `Control Panel > Shared Folder` → select your photos folder → **Edit** → **Permissions** → give that user **Read Only** access.
+   - Note the exact shared folder name (e.g. `photos`) shown in `Control Panel > Shared Folder`.
+
+2. On the CoreELEC box (via SSH):
+   ```bash
+   ssh root@<box-ip>
+   mkdir -p /storage/nas_photos
+   ```
+   Add this line to `/storage/.config/fstab` (CoreELEC's persistent-mount file — not `/etc/fstab`, since the root filesystem is otherwise read-only):
+   ```
+   //<synology-ip>/photos /storage/nas_photos cifs username=kodi-readonly,password=<password>,iocharset=utf8,vers=3.0,file_mode=0777,dir_mode=0777 0 0
+   ```
+   Replace `<synology-ip>`, `photos` (your actual share name), and `<password>` accordingly. Since the password is stored in plain text there, lock the file down: `chmod 600 /storage/.config/fstab`.
+
+3. Mount and verify:
+   ```bash
+   mount -a
+   ls /storage/nas_photos
+   ```
+   You should see your photos/subfolders. If the mount fails, try `vers=2.1` or `vers=2.0` instead of `vers=3.0` — a common SMB protocol mismatch between DSM and the CIFS client. Reboot the box once afterward to confirm the mount comes back automatically on its own, not just via the manual `mount -a`.
+
+4. In Kodi, open the **TV Slideshow** addon Settings → **Photos folder** → Browse → navigate to `/storage/nas_photos` (or a subfolder/album inside it).
+
+The small rotation-correction cache (`.rotated_cache`) always stays on local storage regardless of where the photos folder points, since it's a separate, hardcoded path — so nothing gets written back to the NAS, and reading a few-MB JPEG over the network once every `secondsPerPhoto` interval has no noticeable performance impact.
+
+(NFS is also an option if your NAS supports it and you'd rather not manage a username/password — the fstab line would look like `<nas-ip>:/volume1/photos /storage/nas_photos nfs defaults,rsize=131072,wsize=131072 0 0` instead, after enabling NFS and adding an NFS permission rule for the box's IP on the shared folder in DSM.)
 
 ## Optional: launching with a remote button
 
