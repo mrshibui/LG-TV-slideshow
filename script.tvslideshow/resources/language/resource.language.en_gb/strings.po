@@ -56,3 +56,11 @@ msgstr ""
 msgctxt "#30012"
 msgid "Which folder to show photos from - browse to a subfolder (e.g. one per trip/album) inside /storage/Slideshow/photos, or leave it as-is to use that folder directly."
 msgstr ""
+
+msgctxt "#30013"
+msgid "Show date caption"
+msgstr ""
+
+msgctxt "#30014"
+msgid "Shows the date each photo was taken, read from its EXIF data, in the corner of the screen. Hidden automatically for photos without a usable date."
+msgstr ""

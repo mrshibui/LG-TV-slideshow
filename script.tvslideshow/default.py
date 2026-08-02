@@ -77,6 +77,22 @@ def get_photo_fit():
     return fit if fit in (1, 2) else 2
 
 
+def get_show_date_caption():
+    return ADDON.getSettingBool('showDateCaption')
+
+
+def format_caption_date(exif_date):
+    """Turn an EXIF date string ('YYYY:MM:DD HH:MM:SS') into a human-readable
+    caption ('05 June 2026'), or None if it doesn't parse."""
+    if not exif_date:
+        return None
+    try:
+        parsed = time.strptime(exif_date, '%Y:%m:%d %H:%M:%S')
+    except ValueError:
+        return None
+    return time.strftime('%d %B %Y', parsed)
+
+
 def _read_exif_tiff(path):
     """Locate the EXIF APP1 segment in a JPEG and return (tiff_bytes, endian,
     ifd0_offset), or (None, None, None) if there isn't one / it's not a JPEG.
@@ -331,16 +347,19 @@ def build_photo_order(photos, randomize):
 
 class SlideshowWindow(xbmcgui.WindowDialog):
 
-    def __init__(self, photos, position, randomize, background_color, photo_fit):
+    def __init__(self, photos, position, randomize, background_color, photo_fit, show_date_caption):
         super(SlideshowWindow, self).__init__()
         self.photos = photos
         self.index = 0
         self.randomize = randomize
         self.photo_fit = photo_fit
+        self.show_date_caption = show_date_caption
         self.closed = False
         self.paused = False
         self._last_pause_toggle = 0.0
         self.image = None
+        self.caption_background = None
+        self.caption_label = None
 
         # Reverted: xbmcgui.getScreenWidth()/getScreenHeight() (the true
         # output resolution) made the margin issue worse, not better - one
@@ -441,6 +460,40 @@ class SlideshowWindow(xbmcgui.WindowDialog):
         self.addControl(image)
         self.image = image
 
+        self._update_caption(path)
+
+    def _update_caption(self, path):
+        # Recreated (rather than reused) each time, same as self.image above,
+        # so it's always added after the photo control - controls added
+        # later render on top, which is what keeps the caption visible
+        # instead of hidden behind the newly-shown photo.
+        if self.caption_background is not None:
+            self.removeControl(self.caption_background)
+            self.caption_background = None
+        if self.caption_label is not None:
+            self.removeControl(self.caption_label)
+            self.caption_label = None
+
+        if not self.show_date_caption:
+            return
+        caption_text = format_caption_date(read_exif_datetime(path))
+        if not caption_text:
+            return
+
+        width, height, margin = 460, 70, 30
+        x = self._screen_width - width - margin
+        y = self._screen_height - height - margin
+
+        self.caption_background = xbmcgui.ControlImage(
+            x, y, width, height, BACKGROUND_IMAGE, colorDiffuse='A0000000'
+        )
+        self.addControl(self.caption_background)
+
+        self.caption_label = xbmcgui.ControlLabel(
+            x + 20, y, width - 40, height, caption_text, textColor='FFFFFFFF'
+        )
+        self.addControl(self.caption_label)
+
 
 def run():
     ensure_paths()
@@ -464,6 +517,7 @@ def run():
     interval = get_interval()
     background_color = get_background_color()
     photo_fit = get_photo_fit()
+    show_date_caption = get_show_date_caption()
 
     if not photos:
         xbmcgui.Dialog().notification(
@@ -478,7 +532,7 @@ def run():
     # slideshow is the thing actually on screen.
     xbmc.executebuiltin('InhibitScreensaver(true)')
 
-    window = SlideshowWindow(photos, position, randomize, background_color, photo_fit)
+    window = SlideshowWindow(photos, position, randomize, background_color, photo_fit, show_date_caption)
     window.show()
 
     if photos:

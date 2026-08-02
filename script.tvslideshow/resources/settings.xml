@@ -50,6 +50,11 @@
                         <heading>30011</heading>
                     </control>
                 </setting>
+                <setting id="showDateCaption" type="boolean" label="30013" help="30014">
+                    <level>0</level>
+                    <default>true</default>
+                    <control type="toggle"/>
+                </setting>
             </group>
         </category>
     </section>
