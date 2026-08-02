@@ -88,18 +88,24 @@ def main():
         + '\n'.join(addon_bodies)
         + '\n</addons>\n'
     )
-    with open(os.path.join(REPO_DIR, 'addons.xml'), 'w', encoding='utf-8') as f:
+    # Named "addons-manifest.xml" rather than the conventional "addons.xml"
+    # because raw.githubusercontent.com cached a 404 against the plain
+    # "addons.xml" path back when this repo was still private, and that
+    # negative cache entry never expired even long after the repo went
+    # public - a fresh, never-before-requested filename has no such baggage.
+    with open(os.path.join(REPO_DIR, 'addons-manifest.xml'), 'w', encoding='utf-8') as f:
         f.write(addons_xml)
 
-    # Named ".md5.txt" rather than the more conventional ".md5" because
-    # jsdelivr (used to serve this repo - see repository.muggehslideshow's
-    # addon.xml) blocks the plain ".md5" extension for abuse prevention.
-    # Kodi doesn't care what this file is called, only what URL serves it.
+    # ".md5.txt" rather than the conventional ".md5": jsdelivr (tried before
+    # raw.githubusercontent.com - see git history) blocks the plain ".md5"
+    # extension outright. Kodi only cares about the checksum URL, not the
+    # filename, so this is kept for consistency even now that jsdelivr is
+    # no longer used.
     md5 = hashlib.md5(addons_xml.encode('utf-8')).hexdigest()
-    with open(os.path.join(REPO_DIR, 'addons.xml.md5.txt'), 'w', encoding='utf-8') as f:
+    with open(os.path.join(REPO_DIR, 'addons-manifest.xml.md5.txt'), 'w', encoding='utf-8') as f:
         f.write(md5)
 
-    print('wrote repo/addons.xml and repo/addons.xml.md5.txt (md5=%s)' % md5)
+    print('wrote repo/addons-manifest.xml and repo/addons-manifest.xml.md5.txt (md5=%s)' % md5)
 
 
 if __name__ == '__main__':
