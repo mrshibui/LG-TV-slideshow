@@ -73,14 +73,18 @@ Restart Kodi so it picks up the new addons (either reboot the box, or from an SS
 
 ### Publishing an update (for whoever maintains this repo)
 
-After bumping a version number in an addon's `addon.xml`:
+After bumping a version number in an addon's `addon.xml`, run with a properly Apple-signed Python (Homebrew's ad-hoc-signed one has hit signing-related permission errors deleting/renaming files on this Mac - see the git troubleshooting further down):
 ```bash
-python3 build_repo.py
-git add -A
-git commit -m "..."
-git push
+/usr/bin/python3 build_repo.py
+/usr/bin/git add -A
+/usr/bin/git commit -m "..."
+/usr/bin/git push
 ```
-This regenerates `repo/addons.xml`, `repo/addons.xml.md5`, and each addon's zip under `repo/<addon-id>/`, all served straight from GitHub via `raw.githubusercontent.com`. Kodi periodically re-checks `addons.xml.md5` (or checks immediately if you open `Settings > Add-ons > My add-ons` and pull to refresh) and shows its normal Update button once the new version is live. The repository addon (`repository.muggehslideshow`) is itself included in this same build/publish step, so its own update mechanism can update itself too if its `addon.xml` ever changes.
+This regenerates `repo/addons.xml`, `repo/addons.xml.md5.txt`, and each addon's zip under `repo/<addon-id>/`. These are served via [jsdelivr](https://www.jsdelivr.com/) (`cdn.jsdelivr.net/gh/...`) rather than `raw.githubusercontent.com` - the GitHub repo must stay **public** for either to work, since neither can authenticate, and `raw.githubusercontent.com` specifically had a stuck stale-cache entry after this repo's private→public switch that never resolved on its own. The checksum file is named `.md5.txt` rather than the more conventional `.md5` because jsdelivr blocks that extension outright (a cached 403, not a propagation delay) - Kodi only cares about the URL in the repository addon's `<checksum>` tag, not the filename, so this is purely cosmetic.
+
+Kodi periodically re-checks the checksum URL (or checks immediately if you open `Settings > Add-ons > My add-ons` and pull to refresh) and shows its normal Update button once the new version is live - verify with `curl` against the jsdelivr URLs in `repository.muggehslideshow/addon.xml` if in doubt. The repository addon is itself included in this same build/publish step, so its own update mechanism can update itself too if its `addon.xml` ever changes.
+
+If jsdelivr ever seems to be serving a stale version after a push, its cache can be force-refreshed directly: `curl https://purge.jsdelivr.net/gh/mrshibui/LG-TV-slideshow@main/repo/addons.xml` (and similarly for other paths).
 
 ## Adding photos
 
