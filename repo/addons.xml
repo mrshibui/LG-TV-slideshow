@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addons>
-<addon id="script.tvslideshow" name="TV Slideshow" version="2.10.0" provider-name="muggeh">
+<addon id="script.tvslideshow" name="TV Slideshow" version="2.11.0" provider-name="muggeh">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
     </requires>
@@ -9,7 +9,7 @@
     </extension>
     <extension point="xbmc.addon.metadata">
         <summary lang="en_GB">Full-screen photo slideshow</summary>
-        <description lang="en_GB">Shows a full-screen slideshow of photos from a chosen folder (by default /storage/Slideshow/photos, or a subfolder of it - e.g. one per trip/album - picked via the Photos folder setting). Seconds per photo, random order, background color and photo fit are configured via this addon's own Settings screen. Left/Right on the remote goes to the previous/next photo, Pause/Play pauses and resumes the auto-advance, and Back exits. Photos are scaled per the Photo fit setting against an opaque background, and Kodi's own screensaver is held off while it runs. When Random order is off, photos play in the order they were actually taken (from EXIF date), not filename order. Portrait photos stored sideways with an EXIF rotation tag are automatically corrected (requires Pillow/PIL in Kodi's Python; falls back to showing them as-is otherwise) via a cached copy, without touching the original files.</description>
+        <description lang="en_GB">Shows a full-screen slideshow of photos from a chosen folder (by default /storage/Slideshow/photos, or a subfolder of it - e.g. one per trip/album - picked via the Photos folder setting). Seconds per photo, random order, background color and photo fit are configured via this addon's own Settings screen. Left/Right on the remote goes to the previous/next photo, Pause/Play pauses and resumes the auto-advance, and Back exits. Photos are scaled per the Photo fit setting against an opaque background, and Kodi's own screensaver is held off while it runs. When Random order is off, photos play in the order they were actually taken (from EXIF date), not filename order. Portrait photos stored sideways with an EXIF rotation tag are automatically corrected (requires Pillow/PIL in Kodi's Python; falls back to showing them as-is otherwise) via a cached copy, without touching the original files. Shows a brief on-screen notification with the running version on startup, handy for confirming an update from the repository took effect.</description>
         <platform>all</platform>
     </extension>
 </addon>

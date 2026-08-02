@@ -446,7 +446,14 @@ def run():
     ensure_paths()
     # LOGWARNING rather than LOGINFO so this always makes it into kodi.log
     # regardless of whether debug logging is enabled.
-    xbmc.log('[script.tvslideshow] PIL available: %s' % PIL_AVAILABLE, xbmc.LOGWARNING)
+    version = ADDON.getAddonInfo('version')
+    xbmc.log('[script.tvslideshow] version %s, PIL available: %s' % (version, PIL_AVAILABLE), xbmc.LOGWARNING)
+    # Brief on-screen confirmation of which version is actually running -
+    # handy for confirming an update from the repository actually took
+    # effect, without needing to check kodi.log over SSH.
+    xbmcgui.Dialog().notification(
+        'TV Slideshow', 'Version %s' % version, xbmcgui.NOTIFICATION_INFO, 3000
+    )
 
     photos_dir = get_photos_dir()
     xbmc.log('[script.tvslideshow] using photos folder: %s' % photos_dir, xbmc.LOGWARNING)
