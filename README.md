@@ -114,23 +114,40 @@ Example for a **Synology NAS over SMB**:
    - Create a dedicated read-only user (recommended over reusing an admin account): `Control Panel > User & Group > Create` (e.g. `kodi-readonly`), then `Control Panel > Shared Folder` → select your photos folder → **Edit** → **Permissions** → give that user **Read Only** access.
    - Note the exact shared folder name (e.g. `photos`) shown in `Control Panel > Shared Folder`.
 
-2. On the CoreELEC box (via SSH):
+2. On the CoreELEC box (via SSH), create the mount point and test the mount directly first (before making it persistent), so credential/protocol problems are easy to see:
    ```bash
    ssh root@<box-ip>
    mkdir -p /storage/nas_photos
-   ```
-   Add this line to `/storage/.config/fstab` (CoreELEC's persistent-mount file — not `/etc/fstab`, since the root filesystem is otherwise read-only):
-   ```
-   //<synology-ip>/photos /storage/nas_photos cifs username=kodi-readonly,password=<password>,iocharset=utf8,vers=3.0,file_mode=0777,dir_mode=0777 0 0
-   ```
-   Replace `<synology-ip>`, `photos` (your actual share name), and `<password>` accordingly. Since the password is stored in plain text there, lock the file down: `chmod 600 /storage/.config/fstab`.
-
-3. Mount and verify:
-   ```bash
-   mount -a
+   mount -t cifs //<synology-ip>/photos /storage/nas_photos -o 'username=kodi-readonly,password=<password>,iocharset=utf8,vers=3.0,file_mode=0777,dir_mode=0777'
    ls /storage/nas_photos
    ```
-   You should see your photos/subfolders. If the mount fails, try `vers=2.1` or `vers=2.0` instead of `vers=3.0` — a common SMB protocol mismatch between DSM and the CIFS client. Reboot the box once afterward to confirm the mount comes back automatically on its own, not just via the manual `mount -a`.
+   Replace `<synology-ip>`, `photos` (your actual share name), and `<password>` accordingly. If the mount fails, try `vers=2.1` or `vers=2.0` instead of `vers=3.0` — a common SMB protocol mismatch between DSM and the CIFS client.
+
+   If your password contains a `$` or other shell-special character, the `-o '...'` value **must** be wrapped in single quotes exactly as above, or the shell will silently mangle it before `mount` ever sees it (e.g. `password=abc$xyz` unquoted gets `$xyz` stripped as an undefined shell variable, actually sending just `abc`) — this shows up as a misleading `mount error(13): Permission denied` that looks like a credentials problem but isn't.
+
+3. Make it persist across reboots. CoreELEC's documented approach is a line in `/storage/.config/fstab`, but on at least some systemd-based builds (confirmed on a `21.2-Omega_nightly` build) that file is never actually read — `/etc/fstab` stays a permanently empty, untouched file and nothing copies `/storage/.config/fstab` into it, so the mount silently doesn't come back after a reboot no matter what's in there. The reliable fix on such builds is a small script at `/storage/.config/autostart.sh`, which CoreELEC always runs late in boot (network already up by then):
+   ```bash
+   cat > /storage/.config/autostart.sh << 'SCRIPT'
+   #!/bin/sh
+   (
+     for i in 1 2 3 4 5 6; do
+       mountpoint -q /storage/nas_photos && break
+       mount -t cifs //<synology-ip>/photos /storage/nas_photos -o 'username=kodi-readonly,password=<password>,iocharset=utf8,vers=3.0,file_mode=0777,dir_mode=0777' && break
+       sleep 5
+     done
+   ) &
+   SCRIPT
+   chmod +x /storage/.config/autostart.sh
+   ```
+   The retry loop and background `&` exist because the script can run before the network is fully ready, and so it doesn't delay Kodi's own startup while it waits. If your box's `/storage/.config/fstab` does work (worth trying first — add the equivalent `... cifs username=...,password=...,...,vers=3.0,file_mode=0777,dir_mode=0777 0 0` line there and reboot), you don't need `autostart.sh` at all; it's a fallback for builds where fstab-based mounting isn't actually wired up.
+
+   Either way, reboot once and confirm it came back **on its own**, without running any mount command manually:
+   ```bash
+   reboot
+   # after it's back up:
+   mount | grep nas_photos
+   ls -la /storage/nas_photos
+   ```
 
 4. In Kodi, open the **TV Slideshow** addon Settings → **Photos folder** → Browse → navigate to `/storage/nas_photos` (or a subfolder/album inside it).
 
