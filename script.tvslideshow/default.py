@@ -23,6 +23,7 @@ SLIDESHOW_ROOT = '/storage/Slideshow'
 DEFAULT_PHOTOS_DIR = os.path.join(SLIDESHOW_ROOT, 'photos')
 ROTATED_CACHE_DIR = os.path.join(SLIDESHOW_ROOT, '.rotated_cache')
 STATE_FILE = os.path.join(SLIDESHOW_ROOT, '.slideshow_state.json')
+METADATA_FILE = os.path.join(SLIDESHOW_ROOT, '.slideshow_metadata.json')
 # Bump this whenever the order-building logic changes, so a persisted state
 # file from an older version of the addon gets rebuilt instead of reused.
 STATE_VERSION = 2
@@ -190,41 +191,40 @@ def _ifd_ascii_value(tiff, entries, tag, endian):
     return raw.split(b'\x00', 1)[0].decode('ascii', errors='replace') or None
 
 
-def read_exif_orientation(path):
-    """Read the EXIF Orientation tag (1-8) from a JPEG file, defaulting to 1
-    (normal) for non-JPEGs, files without EXIF, or any parse failure."""
-    tiff, endian, ifd0_offset = _read_exif_tiff(path)
-    if tiff is None:
-        return 1
-    ifd0 = _read_ifd(tiff, ifd0_offset, endian)
-    return _ifd_short_value(ifd0, 0x0112, endian) or 1
-
-
-def read_exif_datetime(path):
-    """Read EXIF DateTimeOriginal ('YYYY:MM:DD HH:MM:SS', in the EXIF SubIFD)
-    falling back to the top-level DateTime tag, or None if neither is present.
+def read_exif_info(path):
+    """Read (orientation, date_taken) from a JPEG's EXIF data together, in a
+    single pass over the file - orientation defaults to 1 (normal) and
+    date_taken to None if there's no EXIF data or either tag is absent.
+    Reading both together (rather than via two separate calls, as before)
+    means each photo's file only needs to be opened/parsed once instead of
+    twice, which matters a lot when the photos folder is on a NAS: with
+    thousands of photos, halving the per-photo network round trips is the
+    difference between a slideshow that stays responsive and one that stalls
+    on every navigation/exit whenever the network has the slightest hiccup.
     """
     tiff, endian, ifd0_offset = _read_exif_tiff(path)
     if tiff is None:
-        return None
+        return 1, None
     ifd0 = _read_ifd(tiff, ifd0_offset, endian)
+    orientation = _ifd_short_value(ifd0, 0x0112, endian) or 1
 
+    date_taken = None
     exif_ifd_offset = _ifd_offset_value(ifd0, 0x8769, endian)  # Exif IFD Pointer
     if exif_ifd_offset:
         exif_ifd = _read_ifd(tiff, exif_ifd_offset, endian)
         date_taken = _ifd_ascii_value(tiff, exif_ifd, 0x9003, endian)  # DateTimeOriginal
-        if date_taken:
-            return date_taken
+    if not date_taken:
+        date_taken = _ifd_ascii_value(tiff, ifd0, 0x0132, endian)  # DateTime
 
-    return _ifd_ascii_value(tiff, ifd0, 0x0132, endian)  # DateTime
+    return orientation, date_taken
 
 
-def _photo_sort_key(path):
+def _photo_sort_key(path, metadata):
     # EXIF date strings ("YYYY:MM:DD HH:MM:SS") sort correctly as plain text.
     # Photos without a usable EXIF date fall back to file modification time,
     # formatted the same way so both kinds interleave in one chronological
     # order instead of being segregated into separate blocks.
-    date_taken = read_exif_datetime(path)
+    date_taken = metadata.get(os.path.basename(path), {}).get('date')
     if not date_taken:
         try:
             date_taken = time.strftime('%Y:%m:%d %H:%M:%S', time.localtime(os.path.getmtime(path)))
@@ -233,17 +233,43 @@ def _photo_sort_key(path):
     return (date_taken, os.path.basename(path))
 
 
-def sort_by_date_taken(photos):
-    return sorted(photos, key=_photo_sort_key)
+def sort_by_date_taken(photos, metadata):
+    return sorted(photos, key=lambda path: _photo_sort_key(path, metadata))
 
 
-def get_display_path(path):
-    """Return the path to actually display for `path`: if it needs EXIF
-    rotation/mirror correction and Pillow is available, returns a cached,
-    corrected copy (generating/refreshing it as needed) without touching the
-    original file at all. Falls back to the original path otherwise.
+def build_photo_metadata(photos, previous_metadata):
+    """Return {basename: {'orientation', 'date', 'mtime'}} for every photo in
+    `photos`, reusing a photo's entry from `previous_metadata` when its mtime
+    hasn't changed. This is what actually avoids re-reading EXIF data (a
+    network round trip per file, for NAS-hosted photos) on every single
+    restart - the auto-start service can relaunch the script every minute,
+    and without this a large NAS-hosted photo set would otherwise redo its
+    full EXIF scan every single time.
     """
-    if not PIL_AVAILABLE or read_exif_orientation(path) == 1:
+    metadata = {}
+    for path in photos:
+        name = os.path.basename(path)
+        try:
+            mtime = os.path.getmtime(path)
+        except OSError:
+            mtime = None
+        cached = previous_metadata.get(name)
+        if cached is not None and mtime is not None and cached.get('mtime') == mtime:
+            metadata[name] = cached
+            continue
+        orientation, date_taken = read_exif_info(path)
+        metadata[name] = {'orientation': orientation, 'date': date_taken, 'mtime': mtime}
+    return metadata
+
+
+def get_display_path(path, orientation):
+    """Return the path to actually display for `path`: if it needs EXIF
+    rotation/mirror correction (per its precomputed `orientation`) and
+    Pillow is available, returns a cached, corrected copy (generating/
+    refreshing it as needed) without touching the original file at all.
+    Falls back to the original path otherwise.
+    """
+    if not PIL_AVAILABLE or orientation == 1:
         return path
 
     cache_path = os.path.join(ROTATED_CACHE_DIR, os.path.basename(path))
@@ -304,6 +330,25 @@ def _load_state():
         return None
 
 
+def _load_metadata_cache():
+    try:
+        with open(METADATA_FILE, 'r') as f:
+            data = json.load(f)
+        if data.get('stateVersion') != STATE_VERSION:
+            return {}
+        return data.get('photos', {})
+    except Exception:
+        return {}
+
+
+def _save_metadata_cache(metadata):
+    try:
+        with open(METADATA_FILE, 'w') as f:
+            json.dump({'stateVersion': STATE_VERSION, 'photos': metadata}, f)
+    except Exception:
+        pass  # non-fatal - worst case the next restart re-reads EXIF data
+
+
 def _save_state(photos, position, randomize):
     state = {
         'stateVersion': STATE_VERSION,
@@ -318,7 +363,7 @@ def _save_state(photos, position, randomize):
         pass  # non-fatal - worst case we lose the resume position
 
 
-def build_photo_order(photos, randomize):
+def build_photo_order(photos, randomize, metadata):
     """Restore a previous run's order/position if the photo set is unchanged
     (so a restart - e.g. by the auto-start service - resumes where it left
     off instead of reshuffling and repeating early photos), otherwise start
@@ -341,15 +386,16 @@ def build_photo_order(photos, randomize):
         order = list(photos)
         random.shuffle(order)
     else:
-        order = sort_by_date_taken(photos)
+        order = sort_by_date_taken(photos, metadata)
     return order, 0
 
 
 class SlideshowWindow(xbmcgui.WindowDialog):
 
-    def __init__(self, photos, position, randomize, background_color, photo_fit, show_date_caption):
+    def __init__(self, photos, position, randomize, background_color, photo_fit, show_date_caption, metadata):
         super(SlideshowWindow, self).__init__()
         self.photos = photos
+        self.metadata = metadata
         self.index = 0
         self.randomize = randomize
         self.photo_fit = photo_fit
@@ -444,7 +490,8 @@ class SlideshowWindow(xbmcgui.WindowDialog):
         # showing at the time, in kodi.log, if the image failed to decode.
         xbmc.log('[script.tvslideshow] showing %s' % path, xbmc.LOGINFO)
 
-        display_path = get_display_path(path)
+        info = self.metadata.get(os.path.basename(path), {})
+        display_path = get_display_path(path, info.get('orientation', 1))
 
         if self.image is not None:
             self.removeControl(self.image)
@@ -460,9 +507,9 @@ class SlideshowWindow(xbmcgui.WindowDialog):
         self.addControl(image)
         self.image = image
 
-        self._update_caption(path)
+        self._update_caption(info.get('date'))
 
-    def _update_caption(self, path):
+    def _update_caption(self, date_taken):
         # Recreated (rather than reused) each time, same as self.image above,
         # so it's always added after the photo control - controls added
         # later render on top, which is what keeps the caption visible
@@ -476,7 +523,7 @@ class SlideshowWindow(xbmcgui.WindowDialog):
 
         if not self.show_date_caption:
             return
-        caption_text = format_caption_date(read_exif_datetime(path))
+        caption_text = format_caption_date(date_taken)
         if not caption_text:
             return
 
@@ -512,7 +559,12 @@ def run():
     xbmc.log('[script.tvslideshow] using photos folder: %s' % photos_dir, xbmc.LOGWARNING)
 
     randomize = get_randomize()
-    photos, position = build_photo_order(load_photos(photos_dir), randomize)
+    all_photos = load_photos(photos_dir)
+    previous_metadata = _load_metadata_cache()
+    metadata = build_photo_metadata(all_photos, previous_metadata)
+    if metadata != previous_metadata:
+        _save_metadata_cache(metadata)
+    photos, position = build_photo_order(all_photos, randomize, metadata)
 
     interval = get_interval()
     background_color = get_background_color()
@@ -532,7 +584,7 @@ def run():
     # slideshow is the thing actually on screen.
     xbmc.executebuiltin('InhibitScreensaver(true)')
 
-    window = SlideshowWindow(photos, position, randomize, background_color, photo_fit, show_date_caption)
+    window = SlideshowWindow(photos, position, randomize, background_color, photo_fit, show_date_caption, metadata)
     window.show()
 
     if photos:
