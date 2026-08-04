@@ -2,6 +2,7 @@
 import json
 import os
 import random
+import shutil
 import struct
 import time
 
@@ -18,6 +19,7 @@ except ImportError:
 ADDON = xbmcaddon.Addon()
 ADDON_PATH = os.path.dirname(os.path.abspath(__file__))
 BACKGROUND_IMAGE = os.path.join(ADDON_PATH, 'resources', 'white.png')
+SAMPLE_PHOTOS_DIR = os.path.join(ADDON_PATH, 'resources', 'sample_photos')
 
 SLIDESHOW_ROOT = '/storage/Slideshow'
 DEFAULT_PHOTOS_DIR = os.path.join(SLIDESHOW_ROOT, 'photos')
@@ -40,6 +42,18 @@ HOME_WINDOW_ID = 10000
 def ensure_paths():
     if not os.path.isdir(DEFAULT_PHOTOS_DIR):
         os.makedirs(DEFAULT_PHOTOS_DIR)
+    _seed_sample_photos()
+
+
+def _seed_sample_photos():
+    """Copy the addon's bundled sample photos into the default photos folder
+    the first time it's empty, so a fresh install has something to show
+    right away instead of an empty-folder notification."""
+    if not os.path.isdir(SAMPLE_PHOTOS_DIR) or load_photos(DEFAULT_PHOTOS_DIR):
+        return
+    for name in os.listdir(SAMPLE_PHOTOS_DIR):
+        if name.lower().endswith(IMAGE_EXTENSIONS):
+            shutil.copy2(os.path.join(SAMPLE_PHOTOS_DIR, name), os.path.join(DEFAULT_PHOTOS_DIR, name))
 
 
 def get_photos_dir():
@@ -548,12 +562,6 @@ def run():
     # regardless of whether debug logging is enabled.
     version = ADDON.getAddonInfo('version')
     xbmc.log('[script.tvslideshow] version %s, PIL available: %s' % (version, PIL_AVAILABLE), xbmc.LOGWARNING)
-    # Brief on-screen confirmation of which version is actually running -
-    # handy for confirming an update from the repository actually took
-    # effect, without needing to check kodi.log over SSH.
-    xbmcgui.Dialog().notification(
-        'TV Slideshow', 'Version %s' % version, xbmcgui.NOTIFICATION_INFO, 3000
-    )
 
     photos_dir = get_photos_dir()
     xbmc.log('[script.tvslideshow] using photos folder: %s' % photos_dir, xbmc.LOGWARNING)

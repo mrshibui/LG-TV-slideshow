@@ -5,7 +5,7 @@
             <group id="general">
                 <setting id="secondsPerPhoto" type="integer" label="30001" help="30002">
                     <level>0</level>
-                    <default>8</default>
+                    <default>20</default>
                     <constraints>
                         <minimum>1</minimum>
                         <step>1</step>
